@@ -1,0 +1,36 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app
+        run: |
+          xcodebuild -scheme TokenGarden -destination 'platform=macOS' \
+            -derivedDataPath build/DerivedData \
+            -configuration Release build
+
+      - name: Package app
+        run: |
+          APP_PATH=$(find build/DerivedData/Build/Products/Release -maxdepth 1 -name '*.app' | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "App bundle not found"
+            exit 1
+          fi
+          ditto -c -k --keepParent "$APP_PATH" build/AgentGarden.app.zip
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/AgentGarden.app.zip
