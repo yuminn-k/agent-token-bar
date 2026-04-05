@@ -6,7 +6,7 @@ class UpdateChecker: ObservableObject {
     @Published var downloadURL: URL?
     @Published var isChecking = false
 
-    private let repo = "yuminn-k/agent-garden-app"
+    private let repo = "yuminn-k/agent-token-bar"
 
     var currentVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
