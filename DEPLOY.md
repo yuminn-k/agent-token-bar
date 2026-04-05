@@ -10,5 +10,8 @@
 ## Build command
 
 ```bash
-xcodebuild -scheme TokenGarden -destination 'platform=macOS'   -derivedDataPath build/DerivedData   -configuration Release build
+CLANG_MODULE_CACHE_PATH=$PWD/.build/ModuleCache \
+SWIFTPM_MODULECACHE_OVERRIDE=$PWD/.build/ModuleCache \
+swift build --configuration release --scratch-path .build/spm
+./scripts/package_app.sh release X.Y.Z N
 ```

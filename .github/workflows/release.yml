@@ -15,20 +15,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build app
+      - name: Build release binary
         run: |
-          xcodebuild -scheme TokenGarden -destination 'platform=macOS' \
-            -derivedDataPath build/DerivedData \
-            -configuration Release build
+          CLANG_MODULE_CACHE_PATH=$PWD/.build/ModuleCache \
+          SWIFTPM_MODULECACHE_OVERRIDE=$PWD/.build/ModuleCache \
+          swift build --configuration release --scratch-path .build/spm
+
+      - name: Run tests
+        run: |
+          CLANG_MODULE_CACHE_PATH=$PWD/.build/ModuleCache \
+          SWIFTPM_MODULECACHE_OVERRIDE=$PWD/.build/ModuleCache \
+          swift test --scratch-path .build/spm
 
       - name: Package app
         run: |
-          APP_PATH=$(find build/DerivedData/Build/Products/Release -maxdepth 1 -name '*.app' | head -n 1)
-          if [ -z "$APP_PATH" ]; then
-            echo "App bundle not found"
-            exit 1
-          fi
-          ditto -c -k --keepParent "$APP_PATH" build/AgentGarden.app.zip
+          VERSION=${GITHUB_REF_NAME#v}
+          ./scripts/package_app.sh release "$VERSION" "$GITHUB_RUN_NUMBER"
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2

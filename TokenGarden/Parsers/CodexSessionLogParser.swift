@@ -20,18 +20,6 @@ final class CodexSessionLogParser {
 
     private var sessionContextByFile: [String: CodexSessionContext] = [:]
 
-    private static let iso8601WithFractional: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-
-    private static let iso8601: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
-
     init(homeDirectory: String = FileManager.default.homeDirectoryForCurrentUser.path) {
         self.watchPaths = [
             "\(homeDirectory)/.codex/sessions",
@@ -137,7 +125,14 @@ final class CodexSessionLogParser {
 
     private static func parseDate(_ string: String?) -> Date? {
         guard let string else { return nil }
-        return iso8601WithFractional.date(from: string) ?? iso8601.date(from: string)
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: string) {
+            return date
+        }
+        let standard = ISO8601DateFormatter()
+        standard.formatOptions = [.withInternetDateTime]
+        return standard.date(from: string)
     }
 }
 

@@ -26,9 +26,11 @@ Codex 토큰과 Kiro CLI 크레딧 사용량을 확인하는 macOS 메뉴바 앱
 GitHub Actions(macOS runner) 기준 빌드 명령:
 
 ```bash
-xcodebuild -scheme TokenGarden -destination 'platform=macOS'   -derivedDataPath build/DerivedData   -configuration Release build
+CLANG_MODULE_CACHE_PATH=$PWD/.build/ModuleCache \
+SWIFTPM_MODULECACHE_OVERRIDE=$PWD/.build/ModuleCache \
+swift build --configuration release --scratch-path .build/spm
 ```
 
 ## 배포
 
-`vX.Y.Z` 태그를 푸시하면 GitHub Actions가 Release 빌드를 생성하고 ZIP 아티팩트를 릴리즈에 첨부합니다.
+`vX.Y.Z` 태그를 푸시하면 GitHub Actions가 Release 빌드를 생성하고 `scripts/package_app.sh`로 `AgentGarden.app.zip`을 만들어 릴리즈에 첨부합니다.

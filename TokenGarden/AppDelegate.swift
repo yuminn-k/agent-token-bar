@@ -16,7 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var kiroUsageService: KiroUsageService!
     private var codexParser: CodexSessionLogParser!
 
-    private nonisolated(unsafe) let refreshLock = NSLock()
+    private let refreshLock = NSLock()
     private nonisolated(unsafe) var pendingActiveProjects: Set<String>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {

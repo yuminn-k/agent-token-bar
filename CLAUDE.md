@@ -13,4 +13,4 @@ Codex + Kiro CLI 사용량을 추적하는 macOS 메뉴바 앱.
 
 - 메뉴바 숫자는 Codex 당일 토큰 기준
 - Kiro는 로그인 상태가 아니면 사용량을 읽지 못함
-- 로컬 빌드보다 GitHub Actions macOS 빌드를 우선 검증 경로로 사용
+- 로컬 검증은 `swift build --scratch-path .build/spm`, 릴리스 패키징은 `scripts/package_app.sh`

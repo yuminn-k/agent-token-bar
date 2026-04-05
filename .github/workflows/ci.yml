@@ -10,8 +10,15 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build
+
+      - name: Build debug binary
         run: |
-          xcodebuild -scheme TokenGarden -destination 'platform=macOS' \
-            -derivedDataPath build/DerivedData \
-            -configuration Debug build
+          CLANG_MODULE_CACHE_PATH=$PWD/.build/ModuleCache \
+          SWIFTPM_MODULECACHE_OVERRIDE=$PWD/.build/ModuleCache \
+          swift build --scratch-path .build/spm
+
+      - name: Run tests
+        run: |
+          CLANG_MODULE_CACHE_PATH=$PWD/.build/ModuleCache \
+          SWIFTPM_MODULECACHE_OVERRIDE=$PWD/.build/ModuleCache \
+          swift test --scratch-path .build/spm

@@ -103,7 +103,7 @@ final class KiroUsageService: ObservableObject {
         case failed(String)
     }
 
-    private static func checkAvailability(binary: String) -> AvailabilityCheck {
+    nonisolated private static func checkAvailability(binary: String) -> AvailabilityCheck {
         let which = run(binary: "/usr/bin/env", arguments: ["which", binary])
         if which.status != 0 || which.stdout.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return .notInstalled
@@ -120,7 +120,7 @@ final class KiroUsageService: ObservableObject {
         return .available
     }
 
-    static func parseUsageOutput(_ output: String) -> KiroUsageSummary? {
+    nonisolated static func parseUsageOutput(_ output: String) -> KiroUsageSummary? {
         let cleaned = stripANSI(output)
         let compact = cleaned.replacingOccurrences(of: "\u{00A0}", with: " ")
 
@@ -160,7 +160,7 @@ final class KiroUsageService: ObservableObject {
         )
     }
 
-    private static func run(binary: String, arguments: [String]) -> (status: Int32, stdout: String, stderr: String) {
+    nonisolated private static func run(binary: String, arguments: [String]) -> (status: Int32, stdout: String, stderr: String) {
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
         let process = Process()
@@ -181,12 +181,12 @@ final class KiroUsageService: ObservableObject {
         return (process.terminationStatus, stdout, stderr)
     }
 
-    private static func stripANSI(_ string: String) -> String {
+    nonisolated private static func stripANSI(_ string: String) -> String {
         string.replacingOccurrences(of: #"\u001B\[[0-9;?]*[ -/]*[@-~]"#, with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private static func firstMatch(in text: String, patterns: [String]) -> Double? {
+    nonisolated private static func firstMatch(in text: String, patterns: [String]) -> Double? {
         for pattern in patterns {
             guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
             let nsrange = NSRange(text.startIndex..<text.endIndex, in: text)
@@ -197,7 +197,7 @@ final class KiroUsageService: ObservableObject {
         return nil
     }
 
-    private static func secondMatch(in text: String, patterns: [String]) -> Double? {
+    nonisolated private static func secondMatch(in text: String, patterns: [String]) -> Double? {
         for pattern in patterns {
             guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
             let nsrange = NSRange(text.startIndex..<text.endIndex, in: text)
@@ -208,12 +208,12 @@ final class KiroUsageService: ObservableObject {
         return nil
     }
 
-    private static func planMatch(in text: String) -> String? {
+    nonisolated private static func planMatch(in text: String) -> String? {
         let candidates = ["Power", "Pro+", "Pro", "Free"]
         return candidates.first { text.localizedCaseInsensitiveContains($0) }
     }
 
-    private static func dateMatch(in text: String) -> Date? {
+    nonisolated private static func dateMatch(in text: String) -> Date? {
         let patterns = [
             #"(20\d{2}-\d{2}-\d{2})"#,
             #"(20\d{2}/\d{2}/\d{2})"#

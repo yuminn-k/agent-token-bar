@@ -1,5 +1,18 @@
 import Foundation
 
+private let logWatcherEventCallback: FSEventStreamCallback = { _, info, _, eventPaths, _, _ in
+    guard let info else { return }
+    let watcher = Unmanaged<LogWatcher>.fromOpaque(info).takeUnretainedValue()
+    guard let paths = unsafeBitCast(eventPaths, to: NSArray.self) as? [String] else { return }
+
+    let filteredPaths = paths.filter { LogWatcher.isSupportedFile(path: $0) }
+    Task { @MainActor in
+        for path in filteredPaths {
+            watcher.processFile(at: path)
+        }
+    }
+}
+
 @MainActor
 class LogWatcher {
     private let watchPaths: [String]
@@ -24,7 +37,7 @@ class LogWatcher {
 
         guard let stream = FSEventStreamCreate(
             nil,
-            LogWatcher.eventCallback,
+            logWatcherEventCallback,
             &context,
             pathsToWatch,
             FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
@@ -83,20 +96,7 @@ class LogWatcher {
         }
     }
 
-    nonisolated private static let eventCallback: FSEventStreamCallback = { _, info, _, eventPaths, _, _ in
-        guard let info else { return }
-        let watcher = Unmanaged<LogWatcher>.fromOpaque(info).takeUnretainedValue()
-        guard let paths = unsafeBitCast(eventPaths, to: NSArray.self) as? [String] else { return }
-
-        let filteredPaths = paths.filter(Self.isSupportedFile(path:))
-        Task { @MainActor in
-            for path in filteredPaths {
-                watcher.processFile(at: path)
-            }
-        }
-    }
-
-    private func processFile(at path: String) {
+    fileprivate func processFile(at path: String) {
         guard FileManager.default.fileExists(atPath: path),
               let handle = FileHandle(forReadingAtPath: path) else { return }
         defer { handle.closeFile() }
@@ -129,13 +129,13 @@ class LogWatcher {
         UserDefaults.standard.set(fileOffsets, forKey: offsetsKey)
     }
 
-    private static func isSupportedFile(path: String) -> Bool {
+    nonisolated fileprivate static func isSupportedFile(path: String) -> Bool {
         if path.hasSuffix(".jsonl") { return true }
         if path.hasSuffix(".log") { return true }
         return false
     }
 
-    private static func collectLines(
+    nonisolated private static func collectLines(
         from path: String,
         into fileLines: inout [(path: String, line: String)],
         offsets: inout [String: Int]
