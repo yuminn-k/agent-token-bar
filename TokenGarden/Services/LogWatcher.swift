@@ -18,6 +18,7 @@ class LogWatcher {
     private let watchPaths: [String]
     private let onNewLine: @MainActor (String, String) -> Void
     private var stream: FSEventStreamRef?
+    private let callbackQueue = DispatchQueue.main
     private var fileOffsets: [String: Int] = [:]
     private let offsetsKey = "AgentGardenLogWatcherOffsets"
 
@@ -46,7 +47,7 @@ class LogWatcher {
         ) else { return }
 
         self.stream = stream
-        FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+        FSEventStreamSetDispatchQueue(stream, callbackQueue)
         FSEventStreamStart(stream)
     }
 

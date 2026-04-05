@@ -4,6 +4,25 @@ import SwiftUI
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
+    private final class RefreshState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var pendingActiveProjects: Set<String>?
+
+        func store(_ projects: Set<String>) {
+            lock.lock()
+            pendingActiveProjects = projects
+            lock.unlock()
+        }
+
+        func take() -> Set<String>? {
+            lock.lock()
+            let projects = pendingActiveProjects
+            pendingActiveProjects = nil
+            lock.unlock()
+            return projects
+        }
+    }
+
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     private var menuBarController: MenuBarController!
@@ -16,8 +35,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var kiroUsageService: KiroUsageService!
     private var codexParser: CodexSessionLogParser!
 
-    private let refreshLock = NSLock()
-    private nonisolated(unsafe) var pendingActiveProjects: Set<String>?
+    private let refreshState = RefreshState()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let bundleId = Bundle.main.bundleIdentifier ?? "com.agentgarden"
@@ -136,9 +154,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func triggerRefresh() {
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let projects = TokenDataStore.getActiveCodexProjects()
-            self?.refreshLock.lock()
-            self?.pendingActiveProjects = projects
-            self?.refreshLock.unlock()
+            self?.refreshState.store(projects)
         }
     }
 
@@ -146,21 +162,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Thread.detachNewThread { [weak self] in
             while true {
                 let projects = TokenDataStore.getActiveCodexProjects()
-                self?.refreshLock.lock()
-                self?.pendingActiveProjects = projects
-                self?.refreshLock.unlock()
+                self?.refreshState.store(projects)
                 Thread.sleep(forTimeInterval: 30)
             }
         }
     }
 
     private func applyPendingRefreshIfNeeded() {
-        refreshLock.lock()
-        let projects = pendingActiveProjects
-        pendingActiveProjects = nil
-        refreshLock.unlock()
-
-        if let projects {
+        if let projects = refreshState.take() {
             dataStore.applyActiveStatus(activeProjects: projects)
         }
     }
