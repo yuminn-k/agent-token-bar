@@ -2,6 +2,8 @@
 
 Codex 토큰과 Kiro CLI 크레딧 사용량을 확인하는 macOS 메뉴바 앱입니다.
 
+![Agent Garden overview](./images/agent-garden-overview.png)
+
 ## 지원 범위
 
 - **Codex**: `~/.codex/sessions` / `~/.codex/archived_sessions`의 `token_count` 이벤트를 파싱해 일/주/월 히트맵, 프로젝트별 사용량, 활성 세션을 표시합니다.
@@ -15,6 +17,7 @@ Codex 토큰과 Kiro CLI 크레딧 사용량을 확인하는 macOS 메뉴바 앱
 - Codex 프로젝트별 사용량, 활성 세션
 - Kiro 현재 사이클 사용량 / 남은 크레딧 / 수동 새로고침
 - 메뉴바 숫자/미니 그래프 모드
+- ZIP + DMG 릴리스 아티팩트
 
 ## 현재 제약
 
@@ -33,4 +36,7 @@ swift build --configuration release --scratch-path .build/spm
 
 ## 배포
 
-`vX.Y.Z` 태그를 푸시하면 GitHub Actions가 Release 빌드를 생성하고 `scripts/package_app.sh`로 `AgentGarden.app.zip`을 만들어 릴리즈에 첨부합니다.
+`vX.Y.Z` 태그를 푸시하면 GitHub Actions가 Release 빌드를 생성하고 아래 아티팩트를 첨부합니다.
+
+- `AgentGarden.app.zip`
+- `AgentGarden.dmg`

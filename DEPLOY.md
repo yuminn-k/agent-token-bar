@@ -14,4 +14,5 @@ CLANG_MODULE_CACHE_PATH=$PWD/.build/ModuleCache \
 SWIFTPM_MODULECACHE_OVERRIDE=$PWD/.build/ModuleCache \
 swift build --configuration release --scratch-path .build/spm
 ./scripts/package_app.sh release X.Y.Z N
+./scripts/package_dmg.sh X.Y.Z N
 ```
