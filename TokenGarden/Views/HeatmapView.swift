@@ -26,11 +26,11 @@ enum HeatmapCalculator {
 }
 
 enum HeatmapRange: String, CaseIterable {
-    case `default` = "Default"
-    case day = "D"
-    case week = "W"
-    case month = "M"
-    case year = "Y"
+    case `default` = "3M"
+    case day = "1D"
+    case week = "1W"
+    case month = "1M"
+    case year = "1Y"
 
     var columns: Int {
         switch self {

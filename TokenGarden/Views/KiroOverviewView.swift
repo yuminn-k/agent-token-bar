@@ -15,9 +15,7 @@ struct KiroOverviewView: View {
         let calendar = Calendar.current
         let comps = calendar.dateComponents([.year, .month], from: Date())
         let monthStart = calendar.date(from: comps)!
-        return dailyUsages
-            .filter { $0.date >= monthStart }
-            .reduce(0) { $0 + $1.creditsUsed }
+        return dailyUsages.filter { $0.date >= monthStart }.reduce(0) { $0 + $1.creditsUsed }
     }
 
     private var heatmapData: [(date: Date, tokens: Int)] {
@@ -40,47 +38,52 @@ struct KiroOverviewView: View {
                 .frame(minHeight: 220)
         default:
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 14) {
                     summaryCard
                         .padding(.top, 8)
+
+                    PanelCard(
+                        title: "Credit Totals",
+                        subtitle: "Rolling usage snapshots from Kiro CLI",
+                        systemImage: "creditcard.fill"
+                    ) {
+                        HStack(spacing: 8) {
+                            MetricTile(label: "Today", value: TokenFormatter.formatCredits(todayCredits), note: "Accumulated locally")
+                            MetricTile(label: "This Month", value: TokenFormatter.formatCredits(monthCredits), note: "Month to date")
+                        }
+                    }
 
                     if dailyUsages.isEmpty {
                         EmptyStateView(reason: .noKiroData)
                             .frame(minHeight: 180)
                     } else {
-                        HeatmapView(
-                            dailyUsages: heatmapData,
-                            selectedDate: $selectedDate,
-                            valueFormatter: { TokenFormatter.formatCredits(Double($0) / 100.0) }
-                        )
+                        PanelCard(
+                            title: "Kiro Heatmap",
+                            subtitle: "Daily credits since local tracking started",
+                            systemImage: "calendar"
+                        ) {
+                            HeatmapView(
+                                dailyUsages: heatmapData,
+                                selectedDate: $selectedDate,
+                                valueFormatter: { TokenFormatter.formatCredits(Double($0) / 100.0) }
+                            )
 
-                        HStack {
-                            Text(selectedDateLabel)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(TokenFormatter.formatCredits(selectedDayCredits ?? todayCredits))
-                                .font(.caption.monospacedDigit())
-                                .fontWeight(.medium)
-                        }
-                        .padding(8)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("Kiro Credits", systemImage: "creditcard.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        HStack {
-                            statsChip(label: "Today", value: TokenFormatter.formatCredits(todayCredits))
-                            statsChip(label: "This Month", value: TokenFormatter.formatCredits(monthCredits))
+                            HStack {
+                                Text(selectedDateLabel)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text(TokenFormatter.formatCredits(selectedDayCredits ?? todayCredits))
+                                    .font(.caption.monospacedDigit())
+                                    .fontWeight(.medium)
+                            }
+                            .padding(10)
+                            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                     }
-                    .padding(8)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 14)
             }
         }
     }
@@ -94,12 +97,11 @@ struct KiroOverviewView: View {
     }
 
     private var summaryCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label("Kiro Usage", systemImage: "terminal.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
+        PanelCard(
+            title: "Kiro Usage",
+            subtitle: "Live credit usage for the current billing cycle",
+            systemImage: "terminal.fill",
+            trailing: AnyView(
                 Button {
                     kiroUsageService.refresh()
                 } label: {
@@ -107,33 +109,24 @@ struct KiroOverviewView: View {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Image(systemName: "arrow.clockwise")
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                            .font(.caption)
                     }
                 }
                 .buttonStyle(.plain)
-            }
-
+            )
+        ) {
             if let summary = kiroUsageService.currentSummary {
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(TokenFormatter.formatCredits(summary.usedCredits))
-                            .font(.title3.weight(.semibold))
-                        Text("used this cycle")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(summary.planName ?? "Kiro")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        if let remaining = summary.remainingCredits {
-                            Text("\(TokenFormatter.formatCredits(remaining)) left")
-                                .font(.caption.monospacedDigit())
-                        } else if let total = summary.totalCredits {
-                            Text("/ \(TokenFormatter.formatCredits(total))")
-                                .font(.caption.monospacedDigit())
-                        }
+                HStack(spacing: 8) {
+                    MetricTile(
+                        label: summary.planName ?? "Plan",
+                        value: TokenFormatter.formatCredits(summary.usedCredits),
+                        note: "Used this cycle"
+                    )
+                    if let remaining = summary.remainingCredits {
+                        MetricTile(label: "Remaining", value: TokenFormatter.formatCredits(remaining), note: "Before reset")
+                    } else if let total = summary.totalCredits {
+                        MetricTile(label: "Allowance", value: TokenFormatter.formatCredits(total), note: "Cycle total")
                     }
                 }
 
@@ -146,7 +139,7 @@ struct KiroOverviewView: View {
                 if let resetAt = summary.resetAt {
                     Text("Resets \(Self.resetFormatter.string(from: resetAt))")
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                 }
             } else {
                 Text(statusDescription)
@@ -154,19 +147,6 @@ struct KiroOverviewView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-    }
-
-    private func statsChip(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.caption.monospacedDigit())
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var statusDescription: String {

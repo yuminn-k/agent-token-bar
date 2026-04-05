@@ -3,7 +3,6 @@ import SwiftUI
 struct HourlyChartView: View {
     let hourlyTokens: [Int]
     var isToday: Bool = true
-    @State private var isExpanded = false
     @State private var hoveredHour: Int?
 
     @AppStorage("heatmapTheme") private var themeName = HeatmapTheme.green.rawValue
@@ -12,77 +11,64 @@ struct HourlyChartView: View {
     }
 
     private var maxTokens: Int {
-        hourlyTokens.max() ?? 1
+        max(hourlyTokens.max() ?? 0, 1)
     }
 
-    private var currentHour: Int {
-        Calendar.current.component(.hour, from: Date())
+    private var peakHourLabel: String? {
+        guard let peak = hourlyTokens.enumerated().max(by: { $0.element < $1.element }), peak.element > 0 else {
+            return nil
+        }
+        return String(format: "%02d:00 peak", peak.offset)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label("Hourly", systemImage: "clock")
-                    .font(.caption)
+        PanelCard(
+            title: isToday ? "Hourly Activity" : "Selected Day Activity",
+            subtitle: "Distribution of tokens across the day",
+            systemImage: "clock",
+            trailing: AnyView(
+                Text(peakHourLabel ?? "No activity")
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
-                Spacer()
-                if !isExpanded, let peak = peakHourLabel {
-                    Text(peak)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 8))
-                    .foregroundStyle(.tertiary)
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
-            }
-            .contentShape(Rectangle())
-            .onTapGesture { isExpanded.toggle() }
+            )
+        ) {
+            VStack(spacing: 10) {
+                chartWithTooltip
+                    .frame(height: 92)
 
-            if isExpanded {
-                VStack(spacing: 4) {
-                    chartWithTooltip
-                        .frame(height: 64)
-
-                    HStack {
-                        Text("0")
-                        Spacer()
-                        Text("6")
-                        Spacer()
-                        Text("12")
-                        Spacer()
-                        Text("18")
-                        Spacer()
-                        Text("23")
-                    }
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
+                HStack {
+                    Text("0")
+                    Spacer()
+                    Text("6")
+                    Spacer()
+                    Text("12")
+                    Spacer()
+                    Text("18")
+                    Spacer()
+                    Text("23")
                 }
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
             }
         }
-        .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var chartWithTooltip: some View {
         GeometryReader { geo in
-            let spacing: CGFloat = 1
-            let barWidth = max(1, (geo.size.width - spacing * 23) / 24)
+            let spacing: CGFloat = 3
+            let barWidth = max(3, (geo.size.width - spacing * 23) / 24)
             let barStep = barWidth + spacing
             let chartHeight = geo.size.height
-            let tooltipWidth: CGFloat = 90
+            let tooltipWidth: CGFloat = 104
 
-            // Bars
             HStack(alignment: .bottom, spacing: spacing) {
                 ForEach(0..<24, id: \.self) { hour in
                     let tokens = hourlyTokens[hour]
-                    let barH = maxTokens > 0
-                        ? max(tokens > 0 ? 2 : 0, chartHeight * CGFloat(tokens) / CGFloat(maxTokens))
-                        : CGFloat(0)
+                    let barH = max(tokens > 0 ? 6 : 2, chartHeight * CGFloat(tokens) / CGFloat(maxTokens))
 
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
-                        RoundedRectangle(cornerRadius: 1.5)
+                        RoundedRectangle(cornerRadius: 3)
                             .fill(barColor(for: hour))
                             .frame(width: barWidth, height: barH)
                             .onHover { isHovered in
@@ -93,25 +79,22 @@ struct HourlyChartView: View {
                 }
             }
 
-            // Tooltip floating above the hovered bar's top
             if let hour = hoveredHour {
                 let tokens = hourlyTokens[hour]
-                let barH = maxTokens > 0
-                    ? max(tokens > 0 ? 2 : 0, chartHeight * CGFloat(tokens) / CGFloat(maxTokens))
-                    : CGFloat(0)
+                let barH = max(tokens > 0 ? 6 : 2, chartHeight * CGFloat(tokens) / CGFloat(maxTokens))
                 let barCenter = barStep * CGFloat(hour) + barWidth / 2
                 let idealX = barCenter - tooltipWidth / 2
                 let clampedX = min(max(idealX, 0), geo.size.width - tooltipWidth)
                 let tooltipY = chartHeight - barH - 18
 
-                Text("\(String(format: "%02d", hour)):00  \(TokenFormatter.format(hourlyTokens[hour]))")
-                    .font(.system(size: 9).monospacedDigit())
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 3))
+                Text("\(String(format: "%02d", hour)):00  \(TokenFormatter.format(tokens))")
+                    .font(.system(size: 10).monospacedDigit())
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
                     .fixedSize()
-                    .frame(width: tooltipWidth, alignment: .center)
-                    .position(x: clampedX + tooltipWidth / 2, y: max(tooltipY, 6))
+                    .frame(width: tooltipWidth)
+                    .position(x: clampedX + tooltipWidth / 2, y: max(tooltipY, 8))
                     .allowsHitTesting(false)
             }
         }
@@ -122,14 +105,8 @@ struct HourlyChartView: View {
             return themeColor
         }
         let tokens = hourlyTokens[hour]
-        guard tokens > 0, maxTokens > 0 else { return themeColor.opacity(0.2) }
+        guard tokens > 0 else { return themeColor.opacity(0.14) }
         let ratio = Double(tokens) / Double(maxTokens)
-        return themeColor.opacity(0.25 + 0.75 * ratio)
-    }
-
-    private var peakHourLabel: String? {
-        guard let peak = hourlyTokens.enumerated().max(by: { $0.element < $1.element }),
-              peak.element > 0 else { return nil }
-        return "Peak \(String(format: "%02d", peak.offset)):00"
+        return themeColor.opacity(0.28 + 0.72 * ratio)
     }
 }

@@ -13,16 +13,15 @@ struct ProjectListView: View {
     var selectedDayProjects: [(name: String, tokens: Int)]?
     var selectedDayLabel: String?
     @State private var selectedRange: ProjectTimeRange = .week
-    @State private var isExpanded = false
 
     private var activeProjects: [(name: String, tokens: Int)] {
-        if let selected = selectedDayProjects {
-            return selected
+        if let selectedDayProjects {
+            return selectedDayProjects.sorted { $0.tokens > $1.tokens }
         }
         switch selectedRange {
-        case .today: return todayProjects
-        case .week: return weekProjects
-        case .month: return monthProjects
+        case .today: return todayProjects.sorted { $0.tokens > $1.tokens }
+        case .week: return weekProjects.sorted { $0.tokens > $1.tokens }
+        case .month: return monthProjects.sorted { $0.tokens > $1.tokens }
         }
     }
 
@@ -31,87 +30,48 @@ struct ProjectListView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Header
-            Button(action: { isExpanded.toggle() }) {
-                HStack {
-                    Label(selectedDayLabel ?? "Projects", systemImage: "folder.fill")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("\(activeProjects.count)")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                    Spacer()
-
-                    if selectedDayProjects == nil && isExpanded {
-                        // Time range picker
-                        HStack(spacing: 2) {
-                            ForEach(ProjectTimeRange.allCases, id: \.self) { range in
-                                Text(range.rawValue)
-                                    .font(.system(size: 9, weight: selectedRange == range ? .semibold : .regular))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        selectedRange == range
-                                            ? Color.accentColor.opacity(0.15)
-                                            : Color.clear,
-                                        in: RoundedRectangle(cornerRadius: 4)
-                                    )
-                                    .foregroundStyle(selectedRange == range ? .primary : .secondary)
-                                    .onTapGesture {
-                                        selectedRange = range
-                                    }
-                            }
-                        }
-                    }
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                }
-                .contentShape(Rectangle())
+        PanelCard(
+            title: selectedDayLabel ?? "Projects",
+            subtitle: "Top token-consuming repositories and folders",
+            systemImage: "folder.fill"
+        ) {
+            if selectedDayProjects == nil {
+                SegmentedPillBar(ProjectTimeRange.self, selection: $selectedRange) { $0.rawValue }
             }
-            .buttonStyle(.plain)
 
-            if isExpanded {
-                if activeProjects.isEmpty {
-                    Text("No projects")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .padding(.vertical, 4)
-                } else {
-                    let items = activeProjects.sorted(by: { $0.tokens > $1.tokens })
-                    let content = VStack(spacing: 0) {
-                        ForEach(items, id: \.name) { project in
-                            HStack {
-                                Text(project.name)
-                                    .font(.caption)
-                                    .lineLimit(1)
-                                Spacer()
-                                Text(TokenFormatter.format(project.tokens))
-                                    .font(.caption2.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                                let pct = totalTokens > 0 ? Int(Double(project.tokens) / Double(totalTokens) * 100) : 0
-                                Text("\(pct)%")
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 30, alignment: .trailing)
-                            }
-                            .padding(.vertical, 2)
-                        }
-                    }
-                    if items.count > 10 {
-                        ScrollView { content }
-                            .scrollIndicators(.never)
-                            .frame(maxHeight: 250)
-                    } else {
-                        content
+            if activeProjects.isEmpty {
+                Text("No project activity for this period.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                let items = Array(activeProjects.prefix(6))
+                VStack(spacing: 10) {
+                    ForEach(items, id: \.name) { project in
+                        projectRow(project)
                     }
                 }
             }
         }
-        .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func projectRow(_ project: (name: String, tokens: Int)) -> some View {
+        let ratio = totalTokens > 0 ? Double(project.tokens) / Double(totalTokens) : 0
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text(project.name)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text(TokenFormatter.format(project.tokens))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                Text("\(Int(ratio * 100))%")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 34, alignment: .trailing)
+            }
+            ProgressView(value: ratio)
+                .tint(.accentColor)
+        }
     }
 }

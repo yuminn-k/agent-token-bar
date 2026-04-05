@@ -16,18 +16,14 @@ struct CodexOverviewView: View {
         var calendar = Calendar.current
         calendar.firstWeekday = 2
         let weekStart = calendar.dateComponents([.calendar, .yearForWeekOfYear, .weekOfYear], from: Date()).date!
-        return allUsages
-            .filter { $0.date >= weekStart }
-            .reduce(0) { $0 + $1.totalTokens }
+        return allUsages.filter { $0.date >= weekStart }.reduce(0) { $0 + $1.totalTokens }
     }
 
     private var monthTokens: Int {
         let calendar = Calendar.current
         let comps = calendar.dateComponents([.year, .month], from: Date())
         let monthStart = calendar.date(from: comps)!
-        return allUsages
-            .filter { $0.date >= monthStart }
-            .reduce(0) { $0 + $1.totalTokens }
+        return allUsages.filter { $0.date >= monthStart }.reduce(0) { $0 + $1.totalTokens }
     }
 
     private var heatmapData: [(date: Date, tokens: Int)] {
@@ -110,29 +106,34 @@ struct CodexOverviewView: View {
                 .frame(minHeight: 220)
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    HeatmapView(dailyUsages: heatmapData, selectedDate: $selectedDate)
-                        .padding(.top, 8)
+                VStack(alignment: .leading, spacing: 14) {
+                    StatsView(
+                        todayTokens: todayUsage?.totalTokens ?? 0,
+                        weekTokens: weekTokens,
+                        monthTokens: monthTokens
+                    )
+                    .padding(.top, 8)
 
-                    if let date = selectedDate,
-                       let usage = allUsages.first(where: { Calendar.current.isDate($0.date, inSameDayAs: date) }) {
-                        HStack {
-                            Text(selectedDayLabel ?? "")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(TokenFormatter.format(usage.totalTokens))
-                                .font(.caption.monospacedDigit())
-                                .fontWeight(.medium)
+                    PanelCard(
+                        title: "Activity Heatmap",
+                        subtitle: "Tap a day to inspect exact tokens and project mix",
+                        systemImage: "calendar"
+                    ) {
+                        HeatmapView(dailyUsages: heatmapData, selectedDate: $selectedDate)
+                        if let date = selectedDate,
+                           let usage = allUsages.first(where: { Calendar.current.isDate($0.date, inSameDayAs: date) }) {
+                            HStack {
+                                Text(selectedDayLabel ?? "Selected day")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text(TokenFormatter.format(usage.totalTokens))
+                                    .font(.caption.monospacedDigit())
+                                    .fontWeight(.medium)
+                            }
+                            .padding(10)
+                            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
-                        .padding(8)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                    } else {
-                        StatsView(
-                            todayTokens: todayUsage?.totalTokens ?? 0,
-                            weekTokens: weekTokens,
-                            monthTokens: monthTokens
-                        )
                     }
 
                     if let state = codexStatusStore.latestRateLimit {
@@ -154,8 +155,8 @@ struct CodexOverviewView: View {
 
                     SessionListView()
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 14)
             }
         }
     }

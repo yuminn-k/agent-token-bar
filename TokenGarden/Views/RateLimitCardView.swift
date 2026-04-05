@@ -4,53 +4,36 @@ struct RateLimitCardView: View {
     let state: CodexRateLimitState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label("Codex Limits", systemImage: "gauge.with.dots.needle.67percent")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                if let planType = state.planType {
-                    Text(planType.capitalized)
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.regularMaterial, in: Capsule())
+        PanelCard(
+            title: "Codex Rate Limits",
+            subtitle: "Current 5-hour and 7-day allowance usage",
+            systemImage: "gauge.with.dots.needle.67percent",
+            trailing: AnyView(
+                Group {
+                    if let planType = state.planType {
+                        Text(planType.capitalized)
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.accentColor.opacity(0.12), in: Capsule())
+                    }
                 }
-            }
-
+            )
+        ) {
             if let latestTurnTokens = state.latestTurnTokens {
-                HStack {
-                    Text("Last Turn")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(TokenFormatter.format(latestTurnTokens))
-                        .font(.caption.monospacedDigit())
-                }
+                MetricTile(label: "Last Turn", value: TokenFormatter.format(latestTurnTokens), note: "Most recent response size")
             }
 
-            quotaRow(
-                label: "5h",
-                value: state.fiveHourUsedPercent,
-                resetAt: state.fiveHourResetAt
-            )
-
-            quotaRow(
-                label: "7d",
-                value: state.sevenDayUsedPercent,
-                resetAt: state.sevenDayResetAt
-            )
+            quotaRow(label: "5h", value: state.fiveHourUsedPercent, resetAt: state.fiveHourResetAt)
+            quotaRow(label: "7d", value: state.sevenDayUsedPercent, resetAt: state.sevenDayResetAt)
         }
-        .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private func quotaRow(label: String, value: Double, resetAt: Date?) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(label)
-                    .font(.caption)
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(Int(value * 100))%")

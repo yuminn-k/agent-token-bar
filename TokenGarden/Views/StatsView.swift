@@ -4,49 +4,18 @@ struct StatsView: View {
     let todayTokens: Int
     let weekTokens: Int
     let monthTokens: Int
-    @State private var isExpanded = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label("Stats", systemImage: "chart.bar.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                if !isExpanded {
-                    Text(TokenFormatter.format(todayTokens))
-                        .font(.caption.monospacedDigit())
-                        .fontWeight(.medium)
-                }
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 8))
-                    .foregroundStyle(.tertiary)
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+        PanelCard(
+            title: "Codex Totals",
+            subtitle: "High-level usage across common time windows",
+            systemImage: "chart.bar.fill"
+        ) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                MetricTile(label: "Today", value: TokenFormatter.format(todayTokens), note: "Current day")
+                MetricTile(label: "This Week", value: TokenFormatter.format(weekTokens), note: "Monday → now")
+                MetricTile(label: "This Month", value: TokenFormatter.format(monthTokens), note: "Month to date")
             }
-            .contentShape(Rectangle())
-            .onTapGesture { isExpanded.toggle() }
-
-            if isExpanded {
-                VStack(spacing: 6) {
-                    statsRow(label: "Today", value: todayTokens)
-                    statsRow(label: "This Week", value: weekTokens)
-                    statsRow(label: "This Month", value: monthTokens)
-                }
-            }
-        }
-        .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-    }
-
-    private func statsRow(label: String, value: Int) -> some View {
-        HStack {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(TokenFormatter.format(value))
-                .font(.caption.monospacedDigit())
-                .fontWeight(.medium)
         }
     }
 }
